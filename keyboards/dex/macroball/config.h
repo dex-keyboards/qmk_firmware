@@ -56,3 +56,4 @@
 #define ENCODERS_PAD_B { F7 }
 
 #define OLED_DISPLAY_128X64
+#define OLED_FONT_WIDTH 1
