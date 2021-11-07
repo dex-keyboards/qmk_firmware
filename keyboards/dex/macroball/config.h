@@ -57,3 +57,4 @@
 
 #define OLED_DISPLAY_128X64
 #define OLED_FONT_WIDTH 1
+#define OLED_FONT_HEIGHT 8

@@ -46,3 +46,10 @@ typedef union {
     uint8_t scroll_cpi_step;
   };
 } config_macroball_t;
+
+typedef struct {
+    uint8_t width;
+    uint8_t height;
+    const char* diffuse;
+    const char* alpha;
+} sprite_t;

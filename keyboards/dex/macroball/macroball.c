@@ -14,24 +14,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
 #include "macroball.h"
 #include "pointing_device.h"
 #include "pmw/pmw.h"
 #include "../coroutine.h"
-
-#define CLAMP_HID(value) value < -127 ? -127 : value > 127 ? 127 : value
-#define DEFAULT_MOTION_CPI 2000
-#define DEFAULT_SCROLL_CPI 500
-#define CLAMPED_CPI_STEP(value) value < 1 ? 1 : value > 120 ? 120 : value
-#define CLAMPED_SCROLL_STEP(value) value < 1 ? 1 : value > 10 ? 10 : value
-#define SCROLL_STEP 100
-
-enum encoder_mode {
-    ENCM_VOLUME,
-    ENCM_MOTION_CPI,
-    ENCM_SCROLL_CPI
-};
-
 
 static const char PROGMEM bmp[] = {
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0xC0, 0xE0,
@@ -49,56 +36,42 @@ static const char PROGMEM bmp[] = {
 0xF8, 0xFF, 0x7F, 0x07, 0x00, 0x00, 0x00, 0xF8, 0xFF, 0xFF, 0xEF, 0xFE, 0xFF, 0x7F, 0x03, 0x00,
 0x00, 0x80, 0xF8, 0xFF, 0x7F, 0x1F, 0xFC, 0xFF, 0xFF, 0x0F, 0x00, 0x00, 0x40, 0xFC, 0xFF, 0xFF,
 0xE1, 0xE0, 0xE0, 0x60, 0x00, 0x00, 0x00, 0x40, 0xFC, 0xFF, 0xFF, 0xE1, 0xE0, 0xE0, 0x60, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
+static const char PROGMEM ball_diffuse[] = {
+0x00, 0x00, 0x80, 0xF8, 0x18, 0x08, 0x0C, 0x04, 0xE4, 0xE4, 0xCC, 0x08, 0x78, 0xE0, 0x00, 0x00,
+0x00, 0x00, 0x01, 0x0F, 0x18, 0x10, 0x20, 0x20, 0x20, 0x20, 0x30, 0x18, 0x0E, 0x03, 0x00, 0x00, };
+
+static const char PROGMEM ball_alpha[] = {
+0x00, 0x00, 0x80, 0xF8, 0xF8, 0xF8, 0xFC, 0xFC, 0xFC, 0xFC, 0xFC, 0xF8, 0xF8, 0xE0, 0x00, 0x00,
+0x00, 0x00, 0x01, 0x0F, 0x1F, 0x1F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x1F, 0x0F, 0x03, 0x00, 0x00 };
+
+static sprite_t ball_sprite = {
+  .width = 16,
+  .height = 16,
+  .diffuse = ball_diffuse,
+  .alpha = ball_alpha
+};
+
+static sprite_t full_sprite = {
+  .width = 128,
+  .height = 16,
+  .diffuse = bmp,
+  .alpha = NULL
+};
+
+#define CLAMP_HID(value) value < -127 ? -127 : value > 127 ? 127 : value
+#define DEFAULT_MOTION_CPI 500
+#define DEFAULT_SCROLL_CPI 100
+#define CLAMPED_CPI_STEP(value) value < 1 ? 1 : value > 120 ? 120 : value
+#define CLAMPED_SCROLL_STEP(value) value < 1 ? 1 : value > 10 ? 10 : value
+#define SCROLL_STEP 1
+
+enum encoder_mode {
+    ENCM_VOLUME,
+    ENCM_MOTION_CPI,
+    ENCM_SCROLL_CPI
+};
 
 static config_macroball_t kb_config;
 static int8_t current_encoder_mode;
@@ -111,6 +84,13 @@ static bool mouse_buttons_dirty;
 
 static int16_t timer;
 static int16_t frameTimer;
+
+static uint8_t ldown = 0;
+static uint8_t rdown = 0;
+static uint8_t udown = 0;
+static uint8_t ddown = 0;
+static uint8_t ballposx;
+static uint8_t ballposy = 16;
 
 static void set_motion_cpi_step(uint8_t cpi_step){
 
@@ -143,9 +123,13 @@ void pointing_device_init(void){
     // read config from EEPROM and update if needed
     kb_config.raw = eeconfig_read_kb();
 
-    if(!kb_config.motion_cpi_step){
-        set_motion_cpi_step(20);
-        set_scroll_cpi_step(20);
+    if(kb_config.motion_cpi_step){
+        set_motion_cpi_step(kb_config.motion_cpi_step);
+        //set_scroll_cpi_step(kb_config.scroll_cpi_step);
+    }
+    else{
+        set_motion_cpi_step(DEFAULT_MOTION_CPI / 100);
+        set_scroll_cpi_step(SCROLL_STEP);
     }
 }
 
@@ -279,6 +263,22 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             on_next_encoder_mode(record);
             return false;
 
+        case KC_LEFT:
+            ldown = record->event.pressed;
+            return true;
+
+        case KC_RIGHT:
+            rdown = record->event.pressed;
+            return true;
+
+        case KC_UP:
+            udown = record->event.pressed;
+            return true;
+
+        case KC_DOWN:
+            ddown = record->event.pressed;
+            return true;
+
         default:
             return true;
   }
@@ -286,20 +286,20 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 
 // const float half_pi = 1.571f;
 // const float pi = 3.142f;
-// const float two_pi = 6.283f;
+const int two_pi = 6;
 // const float two_pi_inv = 0.159f;
 
-// static float fast_sin(float radians) {
-//     float total_cycles = radians / two_pi;
-//     uint8_t cycles = total_cycles;
-//     float offset = total_cycles - cycles;
+// static int fast_sin(int radians) {
+//     return 15;
+//     // float total_cycles = radians / two_pi;
+//     // uint8_t cycles = total_cycles;
+//     // float offset = total_cycles - cycles;
 
-//     return
-//         offset <= 0.25f ? offset * 4.0f :
-//         offset <= 0.50f ? 1.0f - (offset - 0.25f) * 4.0f :
-//         offset <= 0.75f ? (0.5f - offset) * 4.0f :
-//         (offset - 0.75f) * 4.0f - 1.0f;
-
+//     // return
+//     //     offset <= 0.25f ? offset * 4.0f :
+//     //     offset <= 0.50f ? 1.0f - (offset - 0.25f) * 4.0f :
+//     //     offset <= 0.75f ? (0.5f - offset) * 4.0f :
+//     //     (offset - 0.75f) * 4.0f - 1.0f;
 // }
 
 // static uint8_t readNext(const uint8_t* stream, uint16_t offset, uint16_t* buffer) {
@@ -325,90 +325,130 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 //     }
 // }
 
+static char row_buffer[OLED_DISPLAY_WIDTH];
+
+#define MIN(x, min) x < min ? x: min
+#define MAX(x, max) x > max ? x: max
+#define CLAMP(x, min, max) MIN(max, MAX(x, min))
+
+// static void oled_write_raw_positioned_P(
+//     int16_t start_x,
+//     int16_t start_y,
+//     const char* source_data,
+//     uint8_t source_w,
+//     uint8_t source_h) {
+
+//     if (start_x >= OLED_DISPLAY_WIDTH)
+//         return;
+
+//     if (start_y >= OLED_DISPLAY_HEIGHT)
+//         return;
+
+//     uint16_t end_x = start_x + source_w;
+//     if (end_x < 0)
+//         return;
+
+//     uint16_t end_y = start_y + source_h;
+//     if (end_y < 0)
+//         return;
+
+//     uint8_t resolved_start_x = MAX(start_x, 0);
+//     uint8_t resolved_end_x = MIN(end_x, OLED_DISPLAY_WIDTH);
+//     uint8_t resolved_w = resolved_end_x - resolved_start_x;
+//     uint16_t offset_x = resolved_start_x - start_x;
+
+//     uint8_t resolved_start_y = MAX(start_y, 0);
+//     uint8_t resolved_end_y = MIN(end_y, OLED_DISPLAY_HEIGHT);
+//     uint8_t resolved_h = resolved_end_y - resolved_start_y;
+
+//     memset(row_buffer, 0, sizeof(row_buffer));
+
+//     for (int j = 0; j < resolved_h / 8; j++) {
+//         for (int i = 0; i < resolved_w; i++) {
+//             row_buffer[i] = pgm_read_byte(source_data[i + offset_x + j * source_w]);
+//         }
+
+//         oled_set_cursor(
+//             resolved_start_x,
+//             (uint8_t)round((double)resolved_start_y / OLED_FONT_HEIGHT) + j);
+
+//         oled_write_raw(row_buffer, resolved_w);
+//     }
+// }
+
+static void oled_write_sprite_positioned(sprite_t sprite, int16_t x, int16_t y) {
+    if (x >= OLED_DISPLAY_WIDTH)
+        return;
+
+    if (y >= OLED_DISPLAY_HEIGHT)
+        return;
+
+    int16_t end_x = x + sprite.width;
+    if (end_x < 0)
+        return;
+
+    int16_t end_y = y + sprite.height;
+    if (end_y < 0)
+        return;
+
+    uint8_t resolved_x = MAX(x, 0);
+    uint8_t resolved_end_x = MIN(end_x, OLED_DISPLAY_WIDTH);
+    uint8_t resolved_w = resolved_end_x - resolved_x;
+    uint16_t offset_x = resolved_x - x;
+
+    uint8_t resolved_y = MAX(y, 0);
+    uint8_t resolved_end_y = MIN(end_y, OLED_DISPLAY_HEIGHT);
+    uint8_t resolved_h = resolved_end_y - resolved_y;
+    uint16_t offset_y = resolved_y - y;
+
+    for (uint8_t j = 0; j < resolved_h / 8; j++) {
+        for (uint8_t i = 0; i < resolved_w; i++) {
+
+            uint16_t index = i + offset_x + j * sprite.width + offset_y;
+            uint8_t alpha = sprite.alpha == NULL ? 0xFF : pgm_read_byte(sprite.alpha + index);
+            uint8_t diffuse = pgm_read_byte(sprite.diffuse + index);
+//            uint8_t current = row_buffer[i];
+
+  //          row_buffer[i] = current ^ ((current ^ diffuse) & alpha);
+            row_buffer[i] = diffuse & alpha;
+        }
+
+        oled_set_cursor(
+            resolved_x,
+            (uint8_t)round((double)resolved_y / OLED_FONT_HEIGHT) + j);
+
+        oled_write_raw(row_buffer, resolved_w);
+    }
+}
+
 static void coroutine(uint32_t time, uint32_t delta) {
 
     startCoroutine;
 
-    static uint8_t i = 0;
+    static int16_t i;
 
-    for (; i < OLED_DISPLAY_WIDTH; i++) {
+    for (i = -16; i < OLED_DISPLAY_WIDTH + 16; i++) {
+
 
         oled_clear();
-        oled_set_cursor(i, 0);
-        oled_write_raw_P(bmp, sizeof(bmp));
 
-        yieldWaitMs(50);
+        //oled_write_raw_positioned_P(-i, 0, bmp, 128, 64);
+
+        oled_write_sprite_positioned(full_sprite, 0,0);//i, (int16_t)round(sin((double)i / 6 * 2000 / 1000) * 12 + 16));
+        //oled_write_sprite_positioned(ball_sprite, i, (int16_t)fast_sin(i / 6 * 2000 / 1000) * 12 + 30);
+
+        // oled_write_raw_positioned_P(0, 0, bmp, 128, 64);
+
+        //yieldWaitMs();
+
+        oled_write_sprite_positioned(ball_sprite, ballposx, ballposy);
+
+        yield;
     }
 
+    i = -16;
+
     endCoroutine;
-
-                
-        //oled_write_raw_P(bmp, sizeof(bmp));
-
-       /* uint8_t on = 0;
-        uint8_t xbuf[128];
-        int16_t pixelIndex = 0;
-        float pi = 3.147f;
-
-        uint16_t head = 0;
-
-        uint16_t xMin, xMax, yMin, yMax;
-
-        head += readNext(bmp, head, &xMin);
-        head += readNext(bmp, head, &xMax);
-        head += readNext(bmp, head, &yMin);
-        head += readNext(bmp, head, &yMax);
-
-        while(head < sizeof(bmp))
-        {
-            uint16_t len;
-            head += readNext(bmp, head, &len);
-
-            for (int j = 0; j < len; j++) {
-                
-                uint8_t x = (j + pixelIndex) % width;
-                uint8_t y = (j + pixelIndex) / width;
-
-                if (x < xMin) {
-                    j += xMin - x;
-                    continue;
-                }
-
-                if (x > xMax) {
-                    j += width - x + xMin;
-                    continue;
-                }
-
-                if (y < yMin) {
-                    j = width * yMin;
-                    continue;
-                }
-
-                if (y > yMax) {
-                    break;
-                }
-
-                oled_write_pixel(x, y, on);
-            }
-
-            pixelIndex += len;
-            on = on == 1 ? 0 : 1;
-        }*/
-
-        //for (int i = 0; i < width; i++)
-        //{
-        //    oled_write_pixel(
-        //        i,
-        //        (uint8_t)(fast_sin(((float)i + time / 50) * 4 / width * (2 * pi)) * 20) + 40,
-        //        1);
-        //    //     xbuf[x] = ;
-        //}
-        //uint8_t xbufx = xbuf[x];
-
-        //   yieldWaitMs(500);
-    // }
-    //
-     //   endCoroutine;
 }
 
 static uint32_t oled_timer;
@@ -417,14 +457,45 @@ void oled_task_user(void) {
 
     if (oled_timer == 0)
         oled_timer = timer_read32();
-        
+
     uint32_t elapsed = timer_elapsed32(oled_timer);
 
     if (elapsed < 33)
         return;
 
+    if(ldown) ballposx--;
+    if(rdown) ballposx++;
+    if(ddown) ballposy++;
+    if(udown) ballposy--;
+
     oled_timer = timer_read32();
-    coroutine(oled_timer, elapsed);
+
+
+    switch (current_encoder_mode)
+    {
+        case  ENCM_VOLUME:
+
+            coroutine(oled_timer, elapsed);
+            break;
+
+        case  ENCM_MOTION_CPI:
+            oled_write("DPI: ", false);
+            char scpi[5];
+            itoa(kb_config.motion_cpi_step * CPI_STEP, scpi, 10);
+            oled_write(scpi, false);
+            break;
+
+        case  ENCM_SCROLL_CPI:
+            oled_write("SCROLL: ", false);
+            char sscroll[5];
+            itoa(kb_config.scroll_cpi_step * 100, sscroll, 10);
+            oled_write(sscroll, false);
+            break;
+
+        default:
+            //oled_write_P(PSTR("Macroball!"), false);
+            break;
+    }
 }
 
 
@@ -438,7 +509,7 @@ void oled_task_user(void) {
 
 //     uint8_t  width = 128;
 //     //   uint8_t  height = 64;
-//     uint16_t elapsed = timer_elapsed(timer); 
+//     uint16_t elapsed = timer_elapsed(timer);
 //     float pi = 3.147f;
 //     uint16_t k = 0;
 //     uint8_t on = 0;
@@ -450,7 +521,7 @@ void oled_task_user(void) {
 //     // }
 
 //     uint8_t xbuf[width];
-    
+
 //     for (int i = 0; i < sizeof(bmp); i++)
 //     {
 //         uint16_t len;
@@ -481,11 +552,11 @@ void oled_task_user(void) {
 //                 oled_write_pixel(x, y, xbufx >= y - 1 && xbufx <= y + 1 ? false : on );
 //             }
 //         // }
-        
+
 //         k += len;
 //         on = on == 1 ? 0 : 1;
 //     }
-    
+
 //     // for (int x = 0; x < width; x++)
 //     // {
 //     //     uint8_t l = (uint8_t)(sin((float)(x + elapsed / 50) * 4 / width * (2 * pi)) * 10) + 10;
@@ -502,13 +573,13 @@ void oled_task_user(void) {
 //     //     }
 //     // }
 
-    
+
 //     // for (int i = 0; i < width; i++)
 //     // {
 //     //     int y = (uint8_t)(sin((float)((j % width) + elapsed / 50) * 4 / width * (2 * pi)) * 10) + 10;
 //     //     buffer[i, y] = 0;
 //     // }
-    
+
 //     // for (int i = 0; i < width; i++)
 //     // for (int j = 0; i < height; j++)
 //     // {
@@ -537,29 +608,4 @@ void oled_task_user(void) {
 //     // }
 
 //      return;
-
-//     switch (current_encoder_mode)
-//     {
-//         case  ENCM_VOLUME:
-//             oled_write_P(PSTR("Volume"), false);
-//             break;
-
-//         case  ENCM_MOTION_CPI:
-//             oled_write_P(PSTR("DPI: "), false);
-//             char scpi[5];
-//             itoa(kb_config.motion_cpi_step * CPI_STEP, scpi, 10);
-//             oled_write(scpi, false);
-//             break;
-
-//         case  ENCM_SCROLL_CPI:
-//             oled_write_P(PSTR("SCROLL: "), false);
-//             char sscroll[5];
-//             itoa(kb_config.scroll_cpi_step * 100, sscroll, 10);
-//             oled_write(sscroll, false);
-//             break;
-
-//         default:
-//             oled_write_P(PSTR("Macroball!"), false);
-//             break;
-//     }
 // }
