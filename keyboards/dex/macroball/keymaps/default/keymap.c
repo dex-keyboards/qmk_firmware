@@ -26,16 +26,16 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_BASE] = LAYOUT(
      KC_ENC_MODE,
-     KC_BTN2,                                     KC_SCROLL, KC_WBAK,
-     KC_BTN1,                                     KC_UP,     KC_WFWD,
-     _______, KC_BTN3, KC_WBAK, MO(_LOWER), KC_LEFT, KC_DOWN, KC_RGHT
+     KC_BTN3,                              KC_BSPC, KC_SCROLL,
+     MO(_LOWER),                           KC_UP,   KC_ENT,
+     _______, KC_BTN1, KC_BTN2, KC_MPLY, KC_LEFT, KC_DOWN, KC_RGHT
   ),
 
   [_LOWER] = LAYOUT(
      RESET,
-     RGB_TOG,                                     _______, _______,
-     RGB_MOD,                                     KC_PGUP, _______,
-     _______, RGB_HUI, _______, _______, KC_HOME, KC_PGDN, KC_END
+     RGB_MOD,                                     RGB_TOG, _______,
+     _______,                                     KC_PGUP, KC_LSFT,
+     _______, RGB_HUI, RGB_SAI, RGB_VAI, KC_HOME, KC_PGDN, KC_END
   ),
 
   [_RAISE] = LAYOUT(

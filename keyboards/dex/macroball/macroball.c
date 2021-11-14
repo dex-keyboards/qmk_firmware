@@ -46,6 +46,27 @@ static const char PROGMEM ball_alpha[] = {
 0x00, 0x00, 0x80, 0xF8, 0xF8, 0xF8, 0xFC, 0xFC, 0xFC, 0xFC, 0xFC, 0xF8, 0xF8, 0xE0, 0x00, 0x00,
 0x00, 0x00, 0x01, 0x0F, 0x1F, 0x1F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x1F, 0x0F, 0x03, 0x00, 0x00 };
 
+const char palm_diffuse[] PROGMEM = {
+0x00, 0x10, 0x1C, 0x9C, 0xDE, 0xDE, 0xDE, 0xFC, 0xFC, 0xF8, 0xF0, 0xE0, 0xF0, 0xF8, 0xFC, 0xFC,
+0xDE, 0xDE, 0x9E, 0x0E, 0x0E, 0x0C, 0x00, 0x00, 0x00, 0x7C, 0xFF, 0x3F, 0x0F, 0x07, 0x07, 0x03,
+0x7B, 0xF1, 0xC7, 0x0F, 0x3F, 0xFF, 0xFF, 0xE7, 0x07, 0x0F, 0x0F, 0x1F, 0x7E, 0x70, 0x00, 0x00,
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0xF7, 0xD6, 0x92, 0xBA, 0xBC, 0x00, 0x00, 0x07, 0x1F,
+0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+const char palm_alpha[] PROGMEM = {
+0x00, 0x10, 0x1C, 0x9C, 0xDE, 0xDE, 0xDE, 0xFC, 0xFC, 0xF8, 0xF0, 0xE0, 0xF0, 0xF8, 0xFC, 0xFC,
+0xDE, 0xDE, 0x9E, 0x0E, 0x0E, 0x0C, 0x00, 0x00, 0x00, 0x7C, 0xFF, 0x3F, 0x0F, 0x07, 0x07, 0x03,
+0x7B, 0xF1, 0xC7, 0x0F, 0x3F, 0xFF, 0xFF, 0xE7, 0x07, 0x0F, 0x0F, 0x1F, 0x7E, 0x70, 0x00, 0x00,
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0xF7, 0xD6, 0x92, 0xBA, 0xBC, 0x00, 0x00, 0x07, 0x1F,
+0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+sprite_t palm_sprite = {
+  .width = 24,
+  .height = 24,
+  .diffuse = palm_diffuse,
+  .alpha = palm_alpha
+};
+
 static sprite_t ball_sprite = {
   .width = 16,
   .height = 16,
@@ -89,8 +110,11 @@ static uint8_t ldown = 0;
 static uint8_t rdown = 0;
 static uint8_t udown = 0;
 static uint8_t ddown = 0;
-static uint8_t ballposx;
-static uint8_t ballposy = 16;
+static int16_t ballposx;
+static int16_t ballposy = 16;
+static int16_t ballvelx;
+static int16_t ballvely;
+
 
 static void set_motion_cpi_step(uint8_t cpi_step){
 
@@ -140,6 +164,9 @@ void pointing_device_task(void){
 
     int8_t clamped_x = CLAMP_HID(sensor_report.x);
     int8_t clamped_y = CLAMP_HID(sensor_report.y);
+
+    ballvelx += -clamped_x;
+    ballvely += clamped_y;
 
     if(scroll_pressed) {
 
@@ -325,7 +352,7 @@ const int two_pi = 6;
 //     }
 // }
 
-static char row_buffer[OLED_DISPLAY_WIDTH];
+//static char row_buffer[OLED_DISPLAY_WIDTH];
 
 #define MIN(x, min) x < min ? x: min
 #define MAX(x, max) x > max ? x: max
@@ -376,8 +403,11 @@ static char row_buffer[OLED_DISPLAY_WIDTH];
 //     }
 // }
 
+
+static uint8_t *screen_buffer;//[OLED_DISPLAY_WIDTH * OLED_DISPLAY_HEIGHT / OLED_FONT_HEIGHT];
+
 static void oled_write_sprite_positioned(sprite_t sprite, int16_t x, int16_t y) {
-    if (x >= OLED_DISPLAY_WIDTH)
+        if (x >= OLED_DISPLAY_WIDTH)
         return;
 
     if (y >= OLED_DISPLAY_HEIGHT)
@@ -407,17 +437,17 @@ static void oled_write_sprite_positioned(sprite_t sprite, int16_t x, int16_t y) 
             uint16_t index = i + offset_x + j * sprite.width + offset_y;
             uint8_t alpha = sprite.alpha == NULL ? 0xFF : pgm_read_byte(sprite.alpha + index);
             uint8_t diffuse = pgm_read_byte(sprite.diffuse + index);
-//            uint8_t current = row_buffer[i];
 
-  //          row_buffer[i] = current ^ ((current ^ diffuse) & alpha);
-            row_buffer[i] = diffuse & alpha;
+            uint16_t screen_index =(j + resolved_y / 8) * OLED_DISPLAY_WIDTH + resolved_x + i;
+            uint8_t current = screen_buffer[screen_index];
+            screen_buffer[screen_index] = current ^ ((current ^ diffuse) & alpha);
         }
 
-        oled_set_cursor(
+        /*oled_set_cursor(
             resolved_x,
             (uint8_t)round((double)resolved_y / OLED_FONT_HEIGHT) + j);
 
-        oled_write_raw(row_buffer, resolved_w);
+        oled_write_raw(row_buffer, resolved_w);*/
     }
 }
 
@@ -441,7 +471,14 @@ static void coroutine(uint32_t time, uint32_t delta) {
 
         //yieldWaitMs();
 
-        oled_write_sprite_positioned(ball_sprite, ballposx, ballposy);
+        oled_write_sprite_positioned(ball_sprite, 56, 24);
+
+        
+        oled_write_sprite_positioned(palm_sprite, -ballposx, -ballposy + 40);
+        oled_write_sprite_positioned(palm_sprite, - ballposx + 96, -ballposy + 56);
+      
+
+        //oled_write_raw(screen_buffer, sizeof(screen_buffer));
 
         yield;
     }
@@ -460,16 +497,24 @@ void oled_task_user(void) {
 
     uint32_t elapsed = timer_elapsed32(oled_timer);
 
-    if (elapsed < 33)
+    if (elapsed < 100)
         return;
 
-    if(ldown) ballposx--;
-    if(rdown) ballposx++;
-    if(ddown) ballposy++;
-    if(udown) ballposy--;
+        oled_clear();
 
-    oled_timer = timer_read32();
+    // if(ldown) ballposx--;
+    // if(rdown) ballposx++;
+    // if(ddown) ballposy++;
+    // if(udown) ballposy--;
 
+    ballposx += ballvelx / 5;
+    ballposy += ballvely / 5;
+
+    ballvelx = 0;
+    ballvely = 0;
+
+
+    screen_buffer = oled_read_raw(0).current_element;
 
     switch (current_encoder_mode)
     {
@@ -496,6 +541,10 @@ void oled_task_user(void) {
             //oled_write_P(PSTR("Macroball!"), false);
             break;
     }
+    
+
+
+    oled_timer = timer_read32();
 }
 
 
