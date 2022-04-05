@@ -48,8 +48,26 @@ typedef union {
 } config_macroball_t;
 
 typedef struct {
-    uint8_t width;
-    uint8_t height;
+    uint8_t x;
+    uint8_t y;
+} uvec8_t;
+
+typedef struct {
+    int16_t x;
+    int16_t y;
+} vec16_t;
+
+typedef struct {
+    uvec8_t size;
     const char* diffuse;
     const char* alpha;
 } sprite_t;
+
+typedef struct {
+    char value;
+    vec16_t offset;
+    sprite_t sprite;
+} glyph_t;
+
+typedef struct {
+} mode_t;
