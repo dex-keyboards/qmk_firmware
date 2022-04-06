@@ -9,8 +9,7 @@ const char ball_frame_0_alpha[] PROGMEM = {
 0x00, 0x00, 0x1F, 0x3F, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0x3F, 0x1F, 0x00, 0x00};
 
 sprite_t ball_frame_0_sprite = {
-  .width = 16,
-  .height = 24,
+  .size = { .x = 16, .y = 24 },
   .diffuse = ball_frame_0_diffuse,
   .alpha = ball_frame_0_alpha
 };
@@ -26,8 +25,7 @@ const char ball_frame_1_alpha[] PROGMEM = {
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 sprite_t ball_frame_1_sprite = {
-  .width = 16,
-  .height = 24,
+  .size = { .x = 16, .y = 24 },
   .diffuse = ball_frame_1_diffuse,
   .alpha = ball_frame_1_alpha
 };
@@ -43,8 +41,7 @@ const char ball_frame_2_alpha[] PROGMEM = {
 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 sprite_t ball_frame_2_sprite = {
-  .width = 16,
-  .height = 24,
+  .size = { .x = 16, .y = 24 },
   .diffuse = ball_frame_2_diffuse,
   .alpha = ball_frame_2_alpha
 };
@@ -60,8 +57,7 @@ const char ball_frame_3_alpha[] PROGMEM = {
 0x00, 0x00, 0x00, 0x00, 0x0F, 0x3F, 0x7F, 0xFF, 0xFF, 0xFF, 0x7F, 0x3F, 0x0F, 0x00, 0x00, 0x00};
 
 sprite_t ball_frame_3_sprite = {
-  .width = 16,
-  .height = 24,
+  .size = { .x = 16, .y = 24 },
   .diffuse = ball_frame_3_diffuse,
   .alpha = ball_frame_3_alpha
 };
@@ -77,8 +73,7 @@ const char ball_frame_4_alpha[] PROGMEM = {
 0x30, 0x78, 0x78, 0xFC, 0xFC, 0xFC, 0xFC, 0xFC, 0xFC, 0xFC, 0xFC, 0xFC, 0xFC, 0x78, 0x78, 0x30};
 
 sprite_t ball_frame_4_sprite = {
-  .width = 16,
-  .height = 24,
+  .size = { .x = 16, .y = 24 },
   .diffuse = ball_frame_4_diffuse,
   .alpha = ball_frame_4_alpha
 };

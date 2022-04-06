@@ -21,10 +21,9 @@
 #include "../coroutine.h"
 
 //#include "./sprites/palm_sprite.h"
-// #include "./sprites/ball_sprite.h"
-#include "./sprites/title_sprite.h"
+#include "./sprites/ball_sprite.h"
 //#include "./sprites/volume_sprite.h"
-#include "./sprites/glyphs/v_sprite.h"
+#include "./sprites/glyphs/glyphs.h"
 
 
 #define CLAMP_HID(value) value < -127 ? -127 : value > 127 ? 127 : value
@@ -228,32 +227,32 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 
 static uint8_t *screen_buffer;
 
-static void oled_write_sprite_positioned(sprite_t sprite, int16_t x, int16_t y) {
-    
-    if (x >= OLED_DISPLAY_WIDTH)
+static void oled_write_sprite_positioned(sprite_t sprite, vec16_t position) {
+
+    if (position.x >= OLED_DISPLAY_WIDTH)
         return;
 
-    if (y >= OLED_DISPLAY_HEIGHT)
+    if (position.y >= OLED_DISPLAY_HEIGHT)
         return;
 
-    int16_t end_x = x + sprite.size.x;
+    int16_t end_x = position.x + sprite.size.x;
     if (end_x < 0)
         return;
 
-    int16_t end_y = y + sprite.size.y;
+    int16_t end_y = position.y + sprite.size.y;
     if (end_y < 0)
         return;
 
-    uint8_t resolved_x = MAX(x, 0);
+    uint8_t resolved_x = MAX(position.x, 0);
     uint8_t resolved_end_x = MIN(end_x, OLED_DISPLAY_WIDTH);
     uint8_t resolved_w = resolved_end_x - resolved_x;
-    uint16_t offset_x = resolved_x - x;
+    uint16_t offset_x = resolved_x - position.x;
 
     uint8_t y_space = 8;
-    uint8_t resolved_y = (y >= 0 ? y : 0) / y_space;
+    uint8_t resolved_y = (position.y >= 0 ? position.y : 0) / y_space;
     uint8_t resolved_end_y = (end_y < OLED_DISPLAY_HEIGHT ? end_y : OLED_DISPLAY_HEIGHT) / y_space;
     uint8_t resolved_h = resolved_end_y - resolved_y;
-    uint16_t offset_y = resolved_y - (y >= 0 ? y : y - y_space + 1) / y_space;
+    uint16_t offset_y = resolved_y - (position.y >= 0 ? position.y : position.y - y_space + 1) / y_space;
 
     for (uint8_t j = 0; j < resolved_h; j++) {
         for (uint8_t i = 0; i < resolved_w; i++) {
@@ -269,57 +268,86 @@ static void oled_write_sprite_positioned(sprite_t sprite, int16_t x, int16_t y) 
     }
 }
 
+static void oled_write_sprite_string_positioned(char* value, uint8_t length, vec16_t position){
+
+    uint8_t offset = 0;
+    uint8_t glyphCount = sizeof(glyphs) / sizeof(glyph_t*);
+
+    for(uint8_t head = 0; head < length; head++){
+
+        const glyph_t* glyph;
+        uint8_t seek = 0;
+
+        for(; seek < glyphCount; seek++){
+            if((*glyphs[seek]).value == value[head]){
+                glyph = glyphs[seek];
+                break;
+            }
+        }
+
+        // TODO: something if glyph not found
+        oled_write_sprite_positioned(*(*glyph).sprite, (vec16_t){ position.x + offset, position.y });
+
+        offset += (*(*glyph).sprite).size.x;
+    }
+}
+
 static void volume_coroutine(uint32_t time, uint32_t delta) {
 
-//    static uint32_t start;
-    
+
+    oled_write_sprite_string_positioned("abcdeilm", 8, (vec16_t){0, 0});
+    oled_write_sprite_string_positioned("norstuv", 7, (vec16_t){0, 16});
+    oled_write_sprite_string_positioned("0123456789", 10, (vec16_t){0, 32});
+
+   static uint32_t start;
+
     //oled_write_sprite_positioned(v_sprite, 32, 24);
-    
+
     //oled_write_sprite_positioned(palm_sprite, 0, 32);
 
-    // startCoroutine;
+    startCoroutine;
 
-    // start = time;
+    start = time;
 
-    // while(time - start < 100)
-    // {
-    //     oled_write_sprite_positioned(ball_frame_0_sprite, 56, 16);
-    //     yield;
-    // }
-    
-    // start = time;
+    while(time - start < 100)
+    {
+        oled_write_sprite_positioned(ball_frame_0_sprite, (vec16_t){ 56, 16 });
+        yield;
+    }
 
-    // while(time - start < 50)
-    // {
-    //     oled_write_sprite_positioned(ball_frame_1_sprite, 56, 16);
-    //     yield;
-    // }
-    
-    // start = time;
+    start = time;
 
-    // while(time - start < 200)
-    // {
-    //     oled_write_sprite_positioned(ball_frame_2_sprite, 56, 16);
-    //     yield;
-    // }
-    
-    // start = time;
+    while(time - start < 50)
+    {
+        oled_write_sprite_positioned(ball_frame_1_sprite, (vec16_t){ 56, 16 });
+        yield;
+    }
 
-    // while(time - start < 50)
-    // {
-    //     oled_write_sprite_positioned(ball_frame_3_sprite, 56, 16);
-    //     yield;
-    // }
-    
-    // start = time;
+    start = time;
 
-    // while(time - start < 50)
-    // {
-    //     oled_write_sprite_positioned(ball_frame_4_sprite, 56, 16);
-    //     yield;
-    // }
-    
-    // oled_write_sprite_positioned(ball_frame_4_sprite, 56, 16);
+    while(time - start < 200)
+    {
+        oled_write_sprite_positioned(ball_frame_2_sprite, (vec16_t){ 56, 16 });
+        yield;
+    }
+
+    start = time;
+
+    while(time - start < 50)
+    {
+        oled_write_sprite_positioned(ball_frame_3_sprite, (vec16_t){ 56, 16 });
+        yield;
+    }
+
+    start = time;
+
+    while(time - start < 50)
+    {
+        oled_write_sprite_positioned(ball_frame_4_sprite, (vec16_t){ 56, 16 });
+        yield;
+    }
+
+    oled_write_sprite_positioned(ball_frame_4_sprite, (vec16_t){ 56, 16 });
 
 
     // // int grid_size = 10;
@@ -334,7 +362,7 @@ static void volume_coroutine(uint32_t time, uint32_t delta) {
     // //     }
     // // }
 
-    // endCoroutine;
+    endCoroutine;
 }
 
 static uint32_t oled_timer;
@@ -354,8 +382,8 @@ static void render_routine(uint32_t elapsed){
     static uint32_t now = 0;
     int dur = 5000;
 
-    while(now < dur){  
-        oled_write_sprite_positioned(title_sprite, -128 + 128 * now / dur, 0);
+    while(now < dur){
+        oled_write_sprite_string_positioned("macroball", 8, (vec16_t){ -128 + 128 * now / dur, 0});
         now += elapsed;
         yield;
     }
@@ -401,6 +429,6 @@ void oled_task_user(void) {
         return;
 
     render_routine(elapsed);
-    
+
     oled_timer = timer_read32();
 }
