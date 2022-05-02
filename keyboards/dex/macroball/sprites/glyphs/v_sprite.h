@@ -11,3 +11,8 @@ sprite_t v_sprite = {
   .diffuse = v_diffuse,
   .alpha = v_alpha
 };
+
+glyph_t v_glyph = {
+  .value = 'v',
+  .sprite = &v_sprite
+};
