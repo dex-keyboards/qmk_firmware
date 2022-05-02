@@ -33,10 +33,7 @@
 
 enum custom_keycodes {
     KC_SCROLL = SAFE_RANGE,
-    KC_ENC_MODE,
-    KC_CPI_1,
-    KC_CPI_2,
-    KC_CPI_3
+    KC_ENC_MODE
 };
 
 typedef union {
@@ -69,5 +66,17 @@ typedef struct {
     const sprite_t* sprite;
 } glyph_t;
 
+typedef void (*encoder_update_mode_t)(uint8_t index, bool clockwise);
+
+typedef void (*oled_task_mode_t)(uint32_t time, uint32_t delta);
+
 typedef struct {
+    const encoder_update_mode_t encoder_update_mode;
+    const oled_task_mode_t oled_task_mode;
 } mode_t;
+
+void oled_write_sprite_string_positioned(
+    char* value,
+    uint8_t length,
+    vec16_t position,
+    int8_t character_width);

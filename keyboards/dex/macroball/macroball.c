@@ -14,17 +14,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <string.h>
 #include "macroball.h"
 #include "pointing_device.h"
 #include "pmw/pmw.h"
 #include "../coroutine.h"
 
-//#include "./sprites/palm_sprite.h"
 #include "./sprites/ball_sprite.h"
-//#include "./sprites/volume_sprite.h"
 #include "./sprites/glyphs/glyphs.h"
 
+#include "./modes/intro/intro_mode.h"
+#include "./modes/volume/volume_mode.h"
+#include "./modes/motion/motion_mode.h"
+#include "./modes/scroll/scroll_mode.h"
+#include "./modes/game/game_mode.h"
 
 #define CLAMP_HID(value) value < -127 ? -127 : value > 127 ? 127 : value
 #define DEFAULT_MOTION_CPI 500
@@ -33,20 +37,23 @@
 #define CLAMPED_SCROLL_STEP(value) value < 1 ? 1 : value > 10 ? 10 : value
 #define SCROLL_STEP 1
 
-enum encoder_mode {
-    ENCM_VOLUME,
-    ENCM_MOTION_CPI,
-    ENCM_SCROLL_CPI
-};
-
 static config_macroball_t kb_config;
-static int8_t current_encoder_mode;
 
 static bool scroll_pressed;
 static int8_t scroll_h;
 static int8_t scroll_v;
 
 static bool mouse_buttons_dirty;
+
+static mode_t* modes[] = {
+    &volume_mode,
+    &motion_mode,
+    &scroll_mode,
+    &game_mode,
+    NULL
+};
+
+static uint8_t current_mode = 0;
 
 static void set_motion_cpi_step(uint8_t cpi_step){
 
@@ -68,8 +75,6 @@ static void set_scroll_cpi_step(uint8_t scroll_step){
 
 void pointing_device_init(void){
 
-    // todo: move to kb startup
-    current_encoder_mode = ENCM_VOLUME;
 
     pmw_init();
 
@@ -136,30 +141,12 @@ void pointing_device_task(void){
 
 bool encoder_update_kb(uint8_t index, bool clockwise) {
 
-    switch (current_encoder_mode)
-    {
-        case  ENCM_VOLUME:
-            if (clockwise) {
-                tap_code(KC_VOLD);
-            } else {
-                tap_code(KC_VOLU);
-            }
-            break;
+    mode_t* mode = modes[current_mode];
 
-        case  ENCM_MOTION_CPI:
-            set_motion_cpi_step(kb_config.motion_cpi_step + (clockwise ? 1 : -1));
-            break;
-
-        case  ENCM_SCROLL_CPI:
-            set_scroll_cpi_step(kb_config.scroll_cpi_step + (clockwise ? 1 : -1));
-            break;
-
-        default:
-            break;
-    }
+    if(mode->encoder_update_mode != NULL)
+        (*(mode->encoder_update_mode))(index, clockwise);
 
     return true;
-
 }
 
 static void on_mouse_button(uint8_t mouse_button, keyrecord_t *record) {
@@ -175,9 +162,10 @@ static void on_mouse_button(uint8_t mouse_button, keyrecord_t *record) {
     mouse_buttons_dirty = true;
 }
 
-static void on_next_encoder_mode(keyrecord_t *record){
-    if(record->event.pressed && current_encoder_mode++ == ENCM_SCROLL_CPI)
-        current_encoder_mode = ENCM_VOLUME;
+static void on_encoder_button(keyrecord_t *record){
+
+    if(record->event.pressed && modes[++current_mode] == NULL)
+        current_mode = 0;
 }
 
 bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
@@ -213,7 +201,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             return false;
 
         case KC_ENC_MODE:
-            on_next_encoder_mode(record);
+            on_encoder_button(record);
             return false;
 
         default:
@@ -268,17 +256,27 @@ static void oled_write_sprite_positioned(sprite_t sprite, vec16_t position) {
     }
 }
 
-static void oled_write_sprite_string_positioned(char* value, uint8_t length, vec16_t position){
+void oled_write_sprite_string_positioned(
+    char* value,
+    uint8_t length,
+    vec16_t position,
+    int8_t character_width){
 
     uint8_t offset = 0;
     uint8_t glyphCount = sizeof(glyphs) / sizeof(glyph_t*);
 
     for(uint8_t head = 0; head < length; head++){
 
+        if(value[head] == ' '){
+            offset += character_width < 0 ? 16 : character_width;
+            continue;
+        }
+
         const glyph_t* glyph;
         uint8_t seek = 0;
 
         for(; seek < glyphCount; seek++){
+
             if((*glyphs[seek]).value == value[head]){
                 glyph = glyphs[seek];
                 break;
@@ -286,137 +284,17 @@ static void oled_write_sprite_string_positioned(char* value, uint8_t length, vec
         }
 
         // TODO: something if glyph not found
+
         oled_write_sprite_positioned(*(*glyph).sprite, (vec16_t){ position.x + offset, position.y });
 
-        offset += (*(*glyph).sprite).size.x;
+        uint8_t spacing = 1;
+        offset += character_width < 0 ? (*(*glyph).sprite).size.x : character_width + spacing;
     }
-}
-
-static void volume_coroutine(uint32_t time, uint32_t delta) {
-
-
-    oled_write_sprite_string_positioned("abcdeilm", 8, (vec16_t){0, 0});
-    oled_write_sprite_string_positioned("norstuv", 7, (vec16_t){0, 16});
-    oled_write_sprite_string_positioned("0123456789", 10, (vec16_t){0, 32});
-
-   static uint32_t start;
-
-    //oled_write_sprite_positioned(v_sprite, 32, 24);
-
-    //oled_write_sprite_positioned(palm_sprite, 0, 32);
-
-    startCoroutine;
-
-    start = time;
-
-    while(time - start < 100)
-    {
-        oled_write_sprite_positioned(ball_frame_0_sprite, (vec16_t){ 56, 16 });
-        yield;
-    }
-
-    start = time;
-
-    while(time - start < 50)
-    {
-        oled_write_sprite_positioned(ball_frame_1_sprite, (vec16_t){ 56, 16 });
-        yield;
-    }
-
-    start = time;
-
-    while(time - start < 200)
-    {
-        oled_write_sprite_positioned(ball_frame_2_sprite, (vec16_t){ 56, 16 });
-        yield;
-    }
-
-    start = time;
-
-    while(time - start < 50)
-    {
-        oled_write_sprite_positioned(ball_frame_3_sprite, (vec16_t){ 56, 16 });
-        yield;
-    }
-
-    start = time;
-
-    while(time - start < 50)
-    {
-        oled_write_sprite_positioned(ball_frame_4_sprite, (vec16_t){ 56, 16 });
-        yield;
-    }
-
-    oled_write_sprite_positioned(ball_frame_4_sprite, (vec16_t){ 56, 16 });
-
-
-    // // int grid_size = 10;
-    // // int grid_spacing = 50;
-
-    // // for(int j = 0; j < grid_size; j++){
-    // //     for(int k = 0; k < grid_size; k++){
-    // //         oled_write_sprite_positioned(
-    // //             palm_sprite,
-    // //             j * grid_spacing - grid_size * grid_spacing / 2,
-    // //             k * grid_spacing - grid_size * grid_spacing / 2);
-    // //     }
-    // // }
-
-    endCoroutine;
 }
 
 static uint32_t oled_timer;
 
 static uint32_t frame_duration = 50;
-
-static void render_routine(uint32_t elapsed){
-
-
-    screen_buffer = oled_read_raw(0).current_element;
-    oled_clear();
-
-    startCoroutine;
-
-    // intro
-
-    static uint32_t now = 0;
-    int dur = 5000;
-
-    while(now < dur){
-        oled_write_sprite_string_positioned("macroball", 8, (vec16_t){ -128 + 128 * now / dur, 0});
-        now += elapsed;
-        yield;
-    }
-
-    switch (current_encoder_mode)
-    {
-        case  ENCM_VOLUME:
-            volume_coroutine(oled_timer, elapsed);
-            break;
-
-        case  ENCM_MOTION_CPI:
-            oled_set_cursor(0,0);
-            oled_write("DPI: ", false);
-            char scpi[5];
-            itoa(kb_config.motion_cpi_step * CPI_STEP, scpi, 10);
-            oled_write(scpi, false);
-            break;
-
-        case  ENCM_SCROLL_CPI:
-            oled_set_cursor(0,0);
-            oled_write_raw("SCROLL: ", false);
-            char sscroll[5];
-            itoa(kb_config.scroll_cpi_step * 100, sscroll, 10);
-            oled_write(sscroll, false);
-            break;
-
-        default:
-            //oled_write_P(PSTR("Macroball!"), false);
-            break;
-    }
-
-    endCoroutine;
-}
 
 void oled_task_user(void) {
 
@@ -428,7 +306,13 @@ void oled_task_user(void) {
     if (elapsed < frame_duration)
         return;
 
-    render_routine(elapsed);
+    screen_buffer = oled_read_raw(0).current_element;
+    oled_clear();
+
+    mode_t* mode = modes[current_mode];
+
+    if(mode->oled_task_mode != NULL)
+        (*(mode->oled_task_mode))(oled_timer, elapsed);
 
     oled_timer = timer_read32();
 }
