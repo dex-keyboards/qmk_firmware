@@ -56,3 +56,5 @@
 #define ENCODERS_PAD_B { F7 }
 
 #define OLED_DISPLAY_128X64
+
+#define PMW3360_CS_PIN SPI_SS_PIN

@@ -17,18 +17,13 @@
 #include <stdio.h>
 #include <string.h>
 #include "macroball.h"
-#include "pointing_device.h"
-#include "pmw/pmw.h"
+//#include "pointing_device.h"
 #include "../coroutine.h"
+
+#include "./modes/intro/intro_mode.h"
 
 #include "./sprites/ball_sprite.h"
 #include "./sprites/glyphs/glyphs.h"
-
-#include "./modes/intro/intro_mode.h"
-#include "./modes/volume/volume_mode.h"
-#include "./modes/motion/motion_mode.h"
-#include "./modes/scroll/scroll_mode.h"
-#include "./modes/game/game_mode.h"
 
 #define CLAMP_HID(value) value < -127 ? -127 : value > 127 ? 127 : value
 #define DEFAULT_MOTION_CPI 500
@@ -36,6 +31,7 @@
 #define CLAMPED_CPI_STEP(value) value < 1 ? 1 : value > 120 ? 120 : value
 #define CLAMPED_SCROLL_STEP(value) value < 1 ? 1 : value > 10 ? 10 : value
 #define SCROLL_STEP 1
+#define CPI_STEP 100
 
 static config_macroball_t kb_config;
 
@@ -43,23 +39,19 @@ static bool scroll_pressed;
 static int8_t scroll_h;
 static int8_t scroll_v;
 
-static bool mouse_buttons_dirty;
-
 static mode_t* modes[] = {
-    &volume_mode,
-    &motion_mode,
-    &scroll_mode,
-    &game_mode,
+    &intro_mode,
+    //&motion_mode,
     NULL
 };
 
-static uint8_t current_mode = 0;
+static uint8_t current_mode_index = 0;
 
 static void set_motion_cpi_step(uint8_t cpi_step){
 
     uint8_t clamped_cpi_step = CLAMPED_CPI_STEP(cpi_step);
 
-    pmw_set_config((config_pmw_t){ clamped_cpi_step * CPI_STEP});
+    pointing_device_set_cpi(clamped_cpi_step * CPI_STEP);
 
     kb_config.motion_cpi_step = clamped_cpi_step;
     eeconfig_update_kb(kb_config.raw);
@@ -73,37 +65,30 @@ static void set_scroll_cpi_step(uint8_t scroll_step){
     eeconfig_update_kb(kb_config.raw);
 }
 
-void pointing_device_init(void){
-
-
-    pmw_init();
+void pointing_device_init_kb(void){
 
     // read config from EEPROM and update if needed
     kb_config.raw = eeconfig_read_kb();
 
     if(kb_config.motion_cpi_step){
         set_motion_cpi_step(kb_config.motion_cpi_step);
-        //set_scroll_cpi_step(kb_config.scroll_cpi_step);
+        set_scroll_cpi_step(kb_config.scroll_cpi_step);
     }
     else{
         set_motion_cpi_step(DEFAULT_MOTION_CPI / 100);
         set_scroll_cpi_step(SCROLL_STEP);
     }
+    
+    set_scroll_cpi_step(1);
 }
 
-void pointing_device_task(void){
-
-    report_mouse_t mouse_report = pointing_device_get_report();
-    report_pmw_t sensor_report = pmw_get_report();
-
-    int8_t clamped_x = CLAMP_HID(sensor_report.x);
-    int8_t clamped_y = CLAMP_HID(sensor_report.y);
+report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
 
     if(scroll_pressed) {
 
         // accumulate scroll
-        scroll_h += clamped_x;
-        scroll_v += clamped_y;
+        scroll_h += mouse_report.x;
+        scroll_v += mouse_report.y;
 
         int8_t scaled_scroll_h = scroll_h / kb_config.motion_cpi_step * kb_config.scroll_cpi_step;
         int8_t scaled_scroll_v = scroll_v / kb_config.motion_cpi_step * kb_config.scroll_cpi_step;
@@ -111,40 +96,31 @@ void pointing_device_task(void){
         // clear accumulated scroll on assignment
 
         if(scaled_scroll_h != 0){
-            mouse_report.h = -scaled_scroll_h * SCROLL_STEP;
+            mouse_report.h = scaled_scroll_h * SCROLL_STEP;
             scroll_h = 0;
         }
 
         if(scaled_scroll_v != 0){
-            mouse_report.v = -scaled_scroll_v * SCROLL_STEP;
+            mouse_report.v = scaled_scroll_v * SCROLL_STEP;
             scroll_v = 0;
         }
+
+        mouse_report.x = 0;
+        mouse_report.y = 0;
     }
     else {
-        mouse_report.x = -clamped_x;
-        mouse_report.y = clamped_y;
+        mouse_report.y = -mouse_report.y;
     }
 
-    pointing_device_set_report(mouse_report);
-
-    // only send report on change as even sending report with no change is treated as movement
-    if(mouse_buttons_dirty ||
-       mouse_report.x != 0 ||
-       mouse_report.y != 0 ||
-       mouse_report.h != 0 ||
-       mouse_report.v != 0){
-
-        mouse_buttons_dirty = false;
-        pointing_device_send();
-    }
+    return mouse_report;
 }
 
-bool encoder_update_kb(uint8_t index, bool clockwise) {
+bool encoder_update_kbs(uint8_t index, bool clockwise) {
 
-    mode_t* mode = modes[current_mode];
+    mode_t* current_mode = modes[current_mode_index];
 
-    if(mode->encoder_update_mode != NULL)
-        (*(mode->encoder_update_mode))(index, clockwise);
+    if(current_mode != NULL && current_mode->encoder_update_mode != NULL)
+        current_mode->encoder_update_mode(index, clockwise);
 
     return true;
 }
@@ -159,13 +135,14 @@ static void on_mouse_button(uint8_t mouse_button, keyrecord_t *record) {
         report.buttons &= ~mouse_button;
 
     pointing_device_set_report(report);
-    mouse_buttons_dirty = true;
 }
 
 static void on_encoder_button(keyrecord_t *record){
+   
+    uint8_t modes_length = sizeof(modes) / sizeof(mode_t*);
 
-    if(record->event.pressed && modes[++current_mode] == NULL)
-        current_mode = 0;
+    if(record->event.pressed && current_mode_index++ == modes_length)
+        current_mode_index = 0;
 }
 
 bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
@@ -292,27 +269,26 @@ void oled_write_sprite_string_positioned(
     }
 }
 
-static uint32_t oled_timer;
+static uint32_t previous_frame_start_time;
 
-static uint32_t frame_duration = 50;
+static uint32_t target_frame_duration_ms = 50;
 
-void oled_task_user(void) {
+bool oled_task_ksb(void){
 
-    if (oled_timer == 0)
-        oled_timer = timer_read32();
+    uint32_t elapsed_ms = timer_elapsed(previous_frame_start_time);
 
-    uint32_t elapsed = timer_elapsed32(oled_timer);
+    if(elapsed_ms < target_frame_duration_ms)
+        return false;
 
-    if (elapsed < frame_duration)
-        return;
+    previous_frame_start_time = timer_read32();
 
     screen_buffer = oled_read_raw(0).current_element;
     oled_clear();
 
-    mode_t* mode = modes[current_mode];
+    mode_t* current_mode = modes[current_mode_index];
 
-    if(mode->oled_task_mode != NULL)
-        (*(mode->oled_task_mode))(oled_timer, elapsed);
-
-    oled_timer = timer_read32();
+    if(current_mode != NULL && current_mode->oled_task_mode != NULL)
+        current_mode->oled_task_mode(previous_frame_start_time, elapsed_ms);
+    
+    return false;
 }
