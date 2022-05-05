@@ -17,20 +17,21 @@
 #include <stdio.h>
 #include <string.h>
 #include "macroball.h"
-//#include "pointing_device.h"
+
 #include "../coroutine.h"
 
 #include "./modes/intro/intro_mode.h"
 #include "./modes/volume/volume_mode.h"
 #include "./modes/motion/motion_mode.h"
 #include "./modes/scroll/scroll_mode.h"
+#include "./modes/game/game_mode.h"
 
-#include "./sprites/ball_sprite.h"
 #include "./sprites/glyphs/glyphs.h"
 
 #define CLAMP_HID(value) value < -127 ? -127 : value > 127 ? 127 : value
 #define DEFAULT_MOTION_CPI 500
 #define DEFAULT_SCROLL_CPI 100
+#define SCROLL_DIVISOR 10
 #define CLAMPED_CPI_STEP(value) value < 1 ? 1 : value > 120 ? 120 : value
 #define CLAMPED_SCROLL_STEP(value) value < 1 ? 1 : value > 10 ? 10 : value
 
@@ -45,7 +46,7 @@ static mode_t* modes[] = {
     &volume_mode,
     &motion_mode,
     &scroll_mode,
-    NULL
+    &game_mode
 };
 
 static uint8_t current_mode_index = 0;
@@ -86,8 +87,8 @@ void pointing_device_init_kb(void){
         set_scroll_cpi_step(kb_config.scroll_cpi_step);
     }
     else{
-        set_motion_cpi_step(DEFAULT_MOTION_CPI / 100);
-        set_scroll_cpi_step(SCROLL_STEP);
+        set_motion_cpi_step(DEFAULT_MOTION_CPI / CPI_STEP);
+        set_scroll_cpi_step(DEFAULT_SCROLL_CPI / SCROLL_STEP);
     }
 }
 
@@ -99,8 +100,8 @@ report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
         scroll_h += mouse_report.x;
         scroll_v += mouse_report.y;
 
-        int8_t scaled_scroll_h = scroll_h / kb_config.motion_cpi_step * kb_config.scroll_cpi_step;
-        int8_t scaled_scroll_v = scroll_v / kb_config.motion_cpi_step * kb_config.scroll_cpi_step;
+        int8_t scaled_scroll_h = scroll_h / kb_config.motion_cpi_step * kb_config.scroll_cpi_step / SCROLL_DIVISOR;
+        int8_t scaled_scroll_v = scroll_v / kb_config.motion_cpi_step * kb_config.scroll_cpi_step / SCROLL_DIVISOR;
 
         // clear accumulated scroll on assignment
 
@@ -151,7 +152,7 @@ static void on_encoder_button(keyrecord_t *record){
     uint8_t modes_length = sizeof(modes) / sizeof(mode_t*);
 
     if(record->event.pressed && ++current_mode_index == modes_length)
-        current_mode_index = 0;
+        current_mode_index = 1;
 }
 
 bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
@@ -201,7 +202,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 
 static uint8_t *screen_buffer;
 
-static void oled_write_sprite_positioned(sprite_t sprite, vec16_t position) {
+void oled_write_sprite_positioned(sprite_t sprite, vec16_t position) {
 
     if (position.x >= OLED_DISPLAY_WIDTH)
         return;

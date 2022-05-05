@@ -1,11 +1,14 @@
 #include "game_mode.h"
 
+#include "../../../coroutine.h"
+
+#include "../../sprites/ball_sprite.h"
+
 void encoder_update_game(uint8_t index, bool clockwise){
 
 }
 
 void oled_task_game(uint32_t time, uint32_t delta){
-
 
     static uint32_t start;
 
@@ -57,4 +60,4 @@ void oled_task_game(uint32_t time, uint32_t delta){
 
 }
 
-game_mode = (mode_t){ &encoder_update_game, &oled_task_game };
+mode_t game_mode = (mode_t){ &encoder_update_game, &oled_task_game };

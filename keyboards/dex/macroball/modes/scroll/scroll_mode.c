@@ -10,7 +10,7 @@ void oled_task_scroll(uint32_t time, uint32_t delta){
 
     oled_write_sprite_string_positioned("scroll", 6, (vec16_t){6, 8}, -1);
 
-    char sscroll[4];
+    char sscroll[5];
     sprintf(sscroll, "%4d", get_scroll_cpi_step() * 100);
 
     oled_write_sprite_string_positioned(sscroll, 4, (vec16_t){32, 40}, 10);
