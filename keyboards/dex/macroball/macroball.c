@@ -21,6 +21,9 @@
 #include "../coroutine.h"
 
 #include "./modes/intro/intro_mode.h"
+#include "./modes/volume/volume_mode.h"
+#include "./modes/motion/motion_mode.h"
+#include "./modes/scroll/scroll_mode.h"
 
 #include "./sprites/ball_sprite.h"
 #include "./sprites/glyphs/glyphs.h"
@@ -30,8 +33,6 @@
 #define DEFAULT_SCROLL_CPI 100
 #define CLAMPED_CPI_STEP(value) value < 1 ? 1 : value > 120 ? 120 : value
 #define CLAMPED_SCROLL_STEP(value) value < 1 ? 1 : value > 10 ? 10 : value
-#define SCROLL_STEP 1
-#define CPI_STEP 100
 
 static config_macroball_t kb_config;
 
@@ -41,13 +42,15 @@ static int8_t scroll_v;
 
 static mode_t* modes[] = {
     &intro_mode,
-    //&motion_mode,
+    &volume_mode,
+    &motion_mode,
+    &scroll_mode,
     NULL
 };
 
 static uint8_t current_mode_index = 0;
 
-static void set_motion_cpi_step(uint8_t cpi_step){
+void set_motion_cpi_step(uint8_t cpi_step){
 
     uint8_t clamped_cpi_step = CLAMPED_CPI_STEP(cpi_step);
 
@@ -57,12 +60,20 @@ static void set_motion_cpi_step(uint8_t cpi_step){
     eeconfig_update_kb(kb_config.raw);
 }
 
-static void set_scroll_cpi_step(uint8_t scroll_step){
+uint8_t get_motion_cpi_step(void){
+    return kb_config.motion_cpi_step;
+}
+
+void set_scroll_cpi_step(uint8_t scroll_step){
 
     uint8_t clamped_scroll_step = CLAMPED_SCROLL_STEP(scroll_step);
 
     kb_config.scroll_cpi_step = clamped_scroll_step;
     eeconfig_update_kb(kb_config.raw);
+}
+
+uint8_t get_scroll_cpi_step(void){
+    return kb_config.scroll_cpi_step;
 }
 
 void pointing_device_init_kb(void){
@@ -78,8 +89,6 @@ void pointing_device_init_kb(void){
         set_motion_cpi_step(DEFAULT_MOTION_CPI / 100);
         set_scroll_cpi_step(SCROLL_STEP);
     }
-    
-    set_scroll_cpi_step(1);
 }
 
 report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
@@ -115,7 +124,7 @@ report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
     return mouse_report;
 }
 
-bool encoder_update_kbs(uint8_t index, bool clockwise) {
+bool encoder_update_kb(uint8_t index, bool clockwise) {
 
     mode_t* current_mode = modes[current_mode_index];
 
@@ -138,10 +147,10 @@ static void on_mouse_button(uint8_t mouse_button, keyrecord_t *record) {
 }
 
 static void on_encoder_button(keyrecord_t *record){
-   
+
     uint8_t modes_length = sizeof(modes) / sizeof(mode_t*);
 
-    if(record->event.pressed && current_mode_index++ == modes_length)
+    if(record->event.pressed && ++current_mode_index == modes_length)
         current_mode_index = 0;
 }
 
@@ -269,11 +278,15 @@ void oled_write_sprite_string_positioned(
     }
 }
 
+config_macroball_t kb_get_config(void){
+    return kb_config;
+}
+
 static uint32_t previous_frame_start_time;
 
 static uint32_t target_frame_duration_ms = 50;
 
-bool oled_task_ksb(void){
+bool oled_task_kb(void){
 
     uint32_t elapsed_ms = timer_elapsed(previous_frame_start_time);
 
@@ -289,6 +302,6 @@ bool oled_task_ksb(void){
 
     if(current_mode != NULL && current_mode->oled_task_mode != NULL)
         current_mode->oled_task_mode(previous_frame_start_time, elapsed_ms);
-    
+
     return false;
 }

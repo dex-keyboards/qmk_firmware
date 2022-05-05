@@ -75,8 +75,19 @@ typedef struct {
     const oled_task_mode_t oled_task_mode;
 } mode_t;
 
+uint8_t get_motion_cpi_step(void);
+
+void set_motion_cpi_step(uint8_t cpi_step);
+
+uint8_t get_scroll_cpi_step(void);
+
+void set_scroll_cpi_step(uint8_t cpi_step);
+
 void oled_write_sprite_string_positioned(
     char* value,
     uint8_t length,
     vec16_t position,
     int8_t character_width);
+
+#define SCROLL_STEP 1
+#define CPI_STEP 100
