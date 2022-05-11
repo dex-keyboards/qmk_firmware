@@ -43,8 +43,8 @@ static int8_t scroll_v;
 
 static mode_t* modes[] = {
     &intro_mode,
-    &volume_mode,
-    &motion_mode,
+    // &volume_mode,
+    // &motion_mode,
     &scroll_mode,
     &game_mode
 };
@@ -159,6 +159,11 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 
     if(!process_record_user(keycode, record))
         return false;
+
+    mode_t* current_mode = modes[current_mode_index];
+
+    if(current_mode != NULL && current_mode->process_record_mode != NULL)
+        current_mode->process_record_mode(keycode, record);
 
     // handle mouse drag and scroll
 

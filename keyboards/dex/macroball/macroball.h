@@ -45,13 +45,13 @@ typedef union {
 } config_macroball_t;
 
 typedef struct {
-    const uint8_t x;
-    const uint8_t y;
+    uint8_t x;
+    uint8_t y;
 } uvec8_t;
 
 typedef struct {
-    const int16_t x;
-    const int16_t y;
+    int16_t x;
+    int16_t y;
 } vec16_t;
 
 typedef struct {
@@ -70,9 +70,12 @@ typedef void (*encoder_update_mode_t)(uint8_t index, bool clockwise);
 
 typedef void (*oled_task_mode_t)(uint32_t time, uint32_t delta);
 
+typedef bool (*process_record_mode_t)(uint16_t keycode, keyrecord_t *record);
+
 typedef struct {
     const encoder_update_mode_t encoder_update_mode;
     const oled_task_mode_t oled_task_mode;
+    const process_record_mode_t process_record_mode;
 } mode_t;
 
 uint8_t get_motion_cpi_step(void);

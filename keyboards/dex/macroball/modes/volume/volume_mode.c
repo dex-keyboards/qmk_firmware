@@ -13,4 +13,4 @@ void oled_task_volume(uint32_t time, uint32_t delta){
     oled_write_sprite_string_positioned("volume", 6, (vec16_t){32, 8}, -1);
 }
 
-mode_t volume_mode = (mode_t){ &encoder_update_volume, &oled_task_volume};
+mode_t volume_mode = (mode_t){ &encoder_update_volume, &oled_task_volume, NULL};

@@ -30,7 +30,7 @@ DEFAULT_FOLDER = macroball/rev1
 EXTRAFLAGS += -flto
 
 SRC += modes/intro/intro_mode.c
-SRC += modes/volume/volume_mode.c
-SRC += modes/motion/motion_mode.c
+# SRC += modes/volume/volume_mode.c
+# SRC += modes/motion/motion_mode.c
 SRC += modes/scroll/scroll_mode.c
 SRC += modes/game/game_mode.c

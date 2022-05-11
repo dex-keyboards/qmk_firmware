@@ -16,4 +16,4 @@ void oled_task_motion(uint32_t time, uint32_t delta){
     oled_write_sprite_string_positioned(scpi, 5, (vec16_t){32, 40}, 10);
 }
 
-mode_t motion_mode = (mode_t){ &encoder_update_motion, &oled_task_motion };
+mode_t motion_mode = (mode_t){ &encoder_update_motion, &oled_task_motion, NULL };
