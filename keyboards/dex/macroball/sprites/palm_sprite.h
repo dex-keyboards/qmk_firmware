@@ -17,8 +17,7 @@ const char palm_alpha[] PROGMEM = {
 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 sprite_t palm_sprite = {
-  .width = 24,
-  .height = 24,
+  .size = { .x = 24, .y = 24 },
   .diffuse = palm_diffuse,
   .alpha = palm_alpha
 };

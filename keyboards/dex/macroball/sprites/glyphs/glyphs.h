@@ -3,7 +3,6 @@
 #include "./a_sprite.h"
 #include "./b_sprite.h"
 #include "./c_sprite.h"
-#include "./d_sprite.h"
 #include "./e_sprite.h"
 #include "./i_sprite.h"
 #include "./l_sprite.h"
@@ -31,7 +30,6 @@ const glyph_t* glyphs[] = {
     &a_glyph,
     &b_glyph,
     &c_glyph,
-    &d_glyph,
     &e_glyph,
     &i_glyph,
     &l_glyph,

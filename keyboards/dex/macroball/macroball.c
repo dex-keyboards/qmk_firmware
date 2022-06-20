@@ -14,18 +14,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <string.h>
 #include "macroball.h"
-//#include "pointing_device.h"
 #include "../coroutine.h"
 
 #include "./modes/intro/intro_mode.h"
 #include "./modes/volume/volume_mode.h"
 #include "./modes/motion/motion_mode.h"
 #include "./modes/scroll/scroll_mode.h"
+#include "./modes/game/game_mode.h"
 
-#include "./sprites/ball_sprite.h"
 #include "./sprites/glyphs/glyphs.h"
 
 #define CLAMP_HID(value) value < -127 ? -127 : value > 127 ? 127 : value
@@ -45,7 +42,7 @@ static mode_t* modes[] = {
     &volume_mode,
     &motion_mode,
     &scroll_mode,
-    NULL
+    &game_mode
 };
 
 static uint8_t current_mode_index = 0;
@@ -151,7 +148,7 @@ static void on_encoder_button(keyrecord_t *record){
     uint8_t modes_length = sizeof(modes) / sizeof(mode_t*);
 
     if(record->event.pressed && ++current_mode_index == modes_length)
-        current_mode_index = 0;
+        current_mode_index = 1;
 }
 
 bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
@@ -201,7 +198,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 
 static uint8_t *screen_buffer;
 
-static void oled_write_sprite_positioned(sprite_t sprite, vec16_t position) {
+void oled_write_sprite_positioned(sprite_t sprite, vec16_t position) {
 
     if (position.x >= OLED_DISPLAY_WIDTH)
         return;
@@ -232,8 +229,8 @@ static void oled_write_sprite_positioned(sprite_t sprite, vec16_t position) {
         for (uint8_t i = 0; i < resolved_w; i++) {
 
             uint16_t index = i + offset_x + (j + offset_y) * sprite.size.x;
-            uint8_t alpha = sprite.alpha == NULL ? 0xFF : pgm_read_byte(sprite.alpha + index);
             uint8_t diffuse = pgm_read_byte(sprite.diffuse + index);
+            uint8_t alpha = sprite.alpha == NULL ? diffuse : pgm_read_byte(sprite.alpha + index);
 
             uint16_t screen_index = (j + resolved_y) * OLED_DISPLAY_WIDTH + resolved_x + i;
             uint8_t current = screen_buffer[screen_index];
@@ -273,8 +270,8 @@ void oled_write_sprite_string_positioned(
 
         oled_write_sprite_positioned(*(*glyph).sprite, (vec16_t){ position.x + offset, position.y });
 
-        uint8_t spacing = 1;
-        offset += character_width < 0 ? (*(*glyph).sprite).size.x : character_width + spacing;
+        uint8_t spacing = 2;
+        offset += (character_width < 0 ? (*(*glyph).sprite).size.x : character_width) + spacing;
     }
 }
 

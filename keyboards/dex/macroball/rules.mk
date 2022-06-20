@@ -25,12 +25,15 @@ OLED_ENABLE = yes
 POINTING_DEVICE_ENABLE = yes
 POINTING_DEVICE_DRIVER = pmw3360
 
-DEFAULT_FOLDER = macroball/rev1
+# Save space
+MAGIC_ENABLE = no
+AVR_USE_MINIMAL_PRINTF = yes
+LTO_ENABLE = yes
 
-EXTRAFLAGS += -flto
+DEFAULT_FOLDER = macroball/rev1
 
 SRC += modes/intro/intro_mode.c
 SRC += modes/volume/volume_mode.c
 SRC += modes/motion/motion_mode.c
 SRC += modes/scroll/scroll_mode.c
-# SRC += modes/game/game_mode.c
+SRC += modes/game/game_mode.c

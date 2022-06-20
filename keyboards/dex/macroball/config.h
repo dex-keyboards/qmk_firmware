@@ -49,7 +49,7 @@
 #define NO_ACTION_FUNCTION
 
 #define RGB_DI_PIN B7
-//#define RGBLIGHT_ANIMATIONS
+#define RGBLIGHT_ANIMATIONS
 #define RGBLED_NUM 8
 
 #define ENCODERS_PAD_A { F6 }
