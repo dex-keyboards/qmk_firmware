@@ -3,5 +3,5 @@ const char horizontal_diffuse[] PROGMEM = {
 
 sprite_t horizontal_sprite = {
   .size = { .x = 8, .y = 8 },
-  .diffuse = horizontal_diffuse,
+  .diffuse = horizontal_diffuse
 };

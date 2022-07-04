@@ -25,6 +25,7 @@
 #include "./modes/game/game_mode.h"
 
 #include "./sprites/glyphs/glyphs.h"
+#include "./sprites/horizontal_sprite.h"
 
 #define CLAMP_HID(value) value < -127 ? -127 : value > 127 ? 127 : value
 #define DEFAULT_MOTION_CPI 500
@@ -32,12 +33,14 @@
 #define SCROLL_DIVISOR 10
 #define CLAMPED_CPI_STEP(value) value < 1 ? 1 : value > 120 ? 120 : value
 #define CLAMPED_SCROLL_STEP(value) value < 1 ? 1 : value > 10 ? 10 : value
+#define MODE_TWEEN_DURATION 500l
 
 static config_macroball_t kb_config;
 
 static bool scroll_pressed;
 static int8_t scroll_h;
 static int8_t scroll_v;
+static int16_t mode_tween_remaining = 0;
 
 static mode_t* modes[] = {
     &intro_mode,
@@ -48,6 +51,7 @@ static mode_t* modes[] = {
 };
 
 static uint8_t current_mode_index = 0;
+static uint8_t previous_mode_index = 0;
 
 void set_motion_cpi_step(uint8_t cpi_step){
 
@@ -147,10 +151,17 @@ static void on_mouse_button(uint8_t mouse_button, keyrecord_t *record) {
 
 static void on_encoder_button(keyrecord_t *record){
 
+    if(!record->event.pressed)
+        return;
+
+    previous_mode_index = current_mode_index;
+
     uint8_t modes_length = sizeof(modes) / sizeof(mode_t*);
 
-    if(record->event.pressed && ++current_mode_index == modes_length)
+    if(++current_mode_index == modes_length)
         current_mode_index = 1;
+        
+    mode_tween_remaining = MODE_TWEEN_DURATION;
 }
 
 bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
@@ -160,8 +171,12 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 
     mode_t* current_mode = modes[current_mode_index];
 
-    if(current_mode != NULL && current_mode->process_record_mode != NULL)
-        current_mode->process_record_mode(keycode, record);
+    if(current_mode != NULL &&
+       current_mode->process_record_mode != NULL &&
+       !current_mode->process_record_mode(keycode, record))
+    {
+        return false;
+    }
 
     // handle mouse drag and scroll
 
@@ -304,8 +319,27 @@ bool oled_task_kb(void){
 
     mode_t* current_mode = modes[current_mode_index];
 
-    if(current_mode != NULL && current_mode->oled_task_mode != NULL)
-        current_mode->oled_task_mode(previous_frame_start_time, elapsed_ms);
+    vec16_t mode_offset = {0,0};
+
+    if(mode_tween_remaining > 0){
+        mode_tween_remaining = MAX(0, mode_tween_remaining - elapsed_ms);
+
+        vec16_t prev_mode_offset = {-(int16_t)OLED_DISPLAY_WIDTH * (MODE_TWEEN_DURATION - mode_tween_remaining) / MODE_TWEEN_DURATION, 0};
+        mode_offset = (vec16_t){prev_mode_offset.x + OLED_DISPLAY_WIDTH, 0};
+
+        mode_t* previous_mode = modes[previous_mode_index];
+        
+        if(previous_mode != NULL && previous_mode->oled_task_mode != NULL)
+            previous_mode->oled_task_mode(previous_frame_start_time, elapsed_ms, prev_mode_offset);
+    }
+
+    if(current_mode != NULL && current_mode->oled_task_mode != NULL){
+        current_mode->oled_task_mode(previous_frame_start_time, elapsed_ms, mode_offset);
+    }
 
     return false;
+}
+
+vec16_t add_vec16(vec16_t a, vec16_t b){
+    return (vec16_t){a.x + b.x, a.y + b.y};
 }

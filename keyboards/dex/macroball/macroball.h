@@ -54,6 +54,8 @@ typedef struct {
     int16_t y;
 } vec16_t;
 
+vec16_t add_vec16(vec16_t a, vec16_t b);
+
 typedef struct {
     const uvec8_t size;
     const char* diffuse;
@@ -68,7 +70,7 @@ typedef struct {
 
 typedef void (*encoder_update_mode_t)(uint8_t index, bool clockwise);
 
-typedef void (*oled_task_mode_t)(uint32_t time, uint32_t delta);
+typedef void (*oled_task_mode_t)(uint32_t time, uint32_t delta, vec16_t offset);
 
 typedef bool (*process_record_mode_t)(uint16_t keycode, keyrecord_t *record);
 

@@ -1,7 +1,7 @@
 #include "intro_mode.h"
 #include "../../coroutine.h"
 
-void oled_task_intro(uint32_t time, uint32_t delta){
+void oled_task_intro(uint32_t time, uint32_t delta, vec16_t offset){
 
     startCoroutine;
 
@@ -9,7 +9,7 @@ void oled_task_intro(uint32_t time, uint32_t delta){
     int dur = 5000;
 
     while(now < dur){
-        oled_write_sprite_string_positioned("macroball", 9, (vec16_t){ -128 + 128 * now / dur, 0}, -1);
+        oled_write_sprite_string_positioned("macroball", 9, add_vec16((vec16_t){ -128 + 128 * now / dur, 0}, offset), -1);
         now += delta;
         yield;
     }
@@ -17,7 +17,7 @@ void oled_task_intro(uint32_t time, uint32_t delta){
     now = 0;
 
     while(now < 2000){
-        oled_write_sprite_string_positioned("macroball", 9, (vec16_t){ 0, 0}, -1);
+        oled_write_sprite_string_positioned("macroball", 9, offset, -1);
         now += delta;
         yield;
     }
