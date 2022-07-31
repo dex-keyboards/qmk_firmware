@@ -1,5 +1,5 @@
 #include "intro_mode.h"
-#include "../../coroutine.h"
+#include "../../util/coroutine.h"
 
 void oled_task_intro(uint32_t time, uint32_t delta, vec16_t offset){
 

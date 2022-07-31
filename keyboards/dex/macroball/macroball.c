@@ -16,7 +16,7 @@
 
 #include "macroball.h"
 
-#include "../coroutine.h"
+#include "../util/interpolation.h"
 
 #include "./modes/intro/intro_mode.h"
 #include "./modes/volume/volume_mode.h"
@@ -324,7 +324,9 @@ bool oled_task_kb(void){
     if(mode_tween_remaining > 0){
         mode_tween_remaining = MAX(0, mode_tween_remaining - elapsed_ms);
 
-        vec16_t prev_mode_offset = {-(int16_t)OLED_DISPLAY_WIDTH * (MODE_TWEEN_DURATION - mode_tween_remaining) / MODE_TWEEN_DURATION, 0};
+        float elapsed_f = flip((float)mode_tween_remaining / MODE_TWEEN_DURATION);
+
+        vec16_t prev_mode_offset = {-(int16_t)OLED_DISPLAY_WIDTH * smoothStep3(elapsed_f), 0};
         mode_offset = (vec16_t){prev_mode_offset.x + OLED_DISPLAY_WIDTH, 0};
 
         mode_t* previous_mode = modes[previous_mode_index];
@@ -342,4 +344,8 @@ bool oled_task_kb(void){
 
 vec16_t add_vec16(vec16_t a, vec16_t b){
     return (vec16_t){a.x + b.x, a.y + b.y};
+}
+
+bool is_zero_vec16(vec16_t v){
+    return v.x == 0 && v.y == 0;
 }

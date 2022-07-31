@@ -56,6 +56,8 @@ typedef struct {
 
 vec16_t add_vec16(vec16_t a, vec16_t b);
 
+bool is_zero_vec16(vec16_t v);
+
 typedef struct {
     const uvec8_t size;
     const char* diffuse;
