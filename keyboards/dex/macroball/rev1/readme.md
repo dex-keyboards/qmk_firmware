@@ -3,10 +3,5 @@
 Make examples for this keyboard (after setting up your build environment):
 
 ```
-# with ADNS sensor
-make oddball/v2_1:default
-```
-```
-# with PMW sensor
-make oddball/v2_1:pmw3360
+qmk compile -kb dex/macroball/rev1 -km default
 ```

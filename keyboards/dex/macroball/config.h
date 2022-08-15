@@ -44,10 +44,6 @@
 /* Locking resynchronize hack */
 #define LOCKING_RESYNC_ENABLE
 
-/* disable these deprecated features by default */
-#define NO_ACTION_MACRO
-#define NO_ACTION_FUNCTION
-
 #define RGB_DI_PIN B7
 #define RGBLIGHT_ANIMATIONS
 #define RGBLED_NUM 8

@@ -16,7 +16,7 @@
 
 #include "macroball.h"
 
-#include "../util/interpolation.h"
+#include <../../../lib/lib8tion/lib8tion.h>
 
 #include "./modes/intro/intro_mode.h"
 #include "./modes/volume/volume_mode.h"
@@ -25,22 +25,22 @@
 #include "./modes/game/game_mode.h"
 
 #include "./sprites/glyphs/glyphs.h"
-#include "./sprites/horizontal_sprite.h"
+//#include "./sprites/horizontal_sprite.h"
 
-#define CLAMP_HID(value) value < -127 ? -127 : value > 127 ? 127 : value
-#define DEFAULT_MOTION_CPI 500
-#define DEFAULT_SCROLL_CPI 100
-#define SCROLL_DIVISOR 10
 #define CLAMPED_CPI_STEP(value) value < 1 ? 1 : value > 120 ? 120 : value
 #define CLAMPED_SCROLL_STEP(value) value < 1 ? 1 : value > 10 ? 10 : value
-#define MODE_TWEEN_DURATION 500l
+
+static const uint16_t DEFAULT_MOTION_CPI = 500;
+static const uint16_t DEFAULT_SCROLL_CPI = 100;
+static const uint8_t SCROLL_DIVISOR = 10;
+static const uint16_t MODE_TWEEN_DURATION = 500;
 
 static config_macroball_t kb_config;
 
 static bool scroll_pressed;
 static int8_t scroll_h;
 static int8_t scroll_v;
-static int16_t mode_tween_remaining = 0;
+static uint16_t mode_tween_elapsed = 500;
 
 static mode_t* modes[] = {
     &intro_mode,
@@ -161,7 +161,7 @@ static void on_encoder_button(keyrecord_t *record){
     if(++current_mode_index == modes_length)
         current_mode_index = 1;
         
-    mode_tween_remaining = MODE_TWEEN_DURATION;
+    mode_tween_elapsed = 0;
 }
 
 bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
@@ -213,10 +213,6 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             return true;
   }
 }
-
-#define MIN(x, min) x < min ? x: min
-#define MAX(x, max) x > max ? x: max
-#define CLAMP(x, min, max) MIN(max, MAX(x, min))
 
 static uint8_t *screen_buffer;
 
@@ -321,12 +317,12 @@ bool oled_task_kb(void){
 
     vec16_t mode_offset = {0,0};
 
-    if(mode_tween_remaining > 0){
-        mode_tween_remaining = MAX(0, mode_tween_remaining - elapsed_ms);
+    if(mode_tween_elapsed < MODE_TWEEN_DURATION){
 
-        float elapsed_f = flip((float)mode_tween_remaining / MODE_TWEEN_DURATION);
+        mode_tween_elapsed = MIN(MODE_TWEEN_DURATION, mode_tween_elapsed + elapsed_ms);
 
-        vec16_t prev_mode_offset = {-(int16_t)OLED_DISPLAY_WIDTH * smoothStep3(elapsed_f), 0};
+        int8_t elapsed_f = mode_tween_elapsed * 128 / MODE_TWEEN_DURATION;
+        vec16_t prev_mode_offset = {-(int16_t)OLED_DISPLAY_WIDTH * ease8InOutCubic(elapsed_f) / 128, 0};
         mode_offset = (vec16_t){prev_mode_offset.x + OLED_DISPLAY_WIDTH, 0};
 
         mode_t* previous_mode = modes[previous_mode_index];
