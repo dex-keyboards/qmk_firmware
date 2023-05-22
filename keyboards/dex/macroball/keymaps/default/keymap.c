@@ -32,7 +32,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   ),
 
   [_LOWER] = LAYOUT(
-     RESET,
+     QK_BOOT,
      RGB_MOD,                                     RGB_TOG, _______,
      _______,                                     KC_PGUP, KC_LSFT,
      _______, RGB_HUI, RGB_SAI, RGB_VAI, KC_HOME, KC_PGDN, KC_END

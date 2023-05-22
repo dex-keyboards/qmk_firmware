@@ -16,22 +16,12 @@
 
 #pragma once
 
-#include "config_common.h"
-
-/* USB Device descriptor parameter */
-#define VENDOR_ID 0xFEED
-#define PRODUCT_ID 0xCA49
-#define DEVICE_VER 0x0001
-#define MANUFACTURER Dex
-#define PRODUCT Macroball
-
 /* key matrix size */
 #define MATRIX_ROWS 4
 #define MATRIX_COLS 7
 
 #define MATRIX_ROW_PINS { F0, F1, F4, F5 }
 #define MATRIX_COL_PINS { B6, B5, B4, D7, D4, C7, C6 }
-#define UNUSED_PINS { D2, D3, D5, D6, E6 }
 
 /* COL2ROW, ROW2COL*/
 #define DIODE_DIRECTION COL2ROW
@@ -45,15 +35,17 @@
 #define LOCKING_RESYNC_ENABLE
 
 #define RGB_DI_PIN B7
-#define RGBLIGHT_ANIMATIONS
 #define RGBLED_NUM 8
+#define RGBLIGHT_EFFECT_BREATHING
+#define RGBLIGHT_EFFECT_RAINBOW_MOOD
+#define RGBLIGHT_EFFECT_RAINBOW_SWIRL
+#define RGBLIGHT_EFFECT_SNAKE
 
 #define ENCODERS_PAD_A { F6 }
 #define ENCODERS_PAD_B { F7 }
 
 #define OLED_DISPLAY_128X64
 
-#define PMW3360_CS_PIN SPI_SS_PIN
-
+#define PMW33XX_CS_PIN SPI_SS_PIN
 /* Bump up to 70MHz as per datasheet */
-#define PMW3360_CLOCK_SPEED 70000000
+#define PMW33XX_CLOCK_SPEED 70000000

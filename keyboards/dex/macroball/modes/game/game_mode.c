@@ -92,7 +92,7 @@ void oled_task_game(uint32_t time, uint32_t delta, vec16_t offset){
 
 bool process_record_game(uint16_t keycode, keyrecord_t *record){
 
-    if (keycode == keymaps[0][3][4]) {
+    if (record->event.key.col == 4 && record->event.key.row == 3) {
         if(record->event.pressed)
             ball_velocity.x -= 2;
         else
@@ -101,7 +101,7 @@ bool process_record_game(uint16_t keycode, keyrecord_t *record){
         return false;
     }
 
-    if (keycode == keymaps[0][3][6]) {
+    if (record->event.key.col == 6 && record->event.key.row == 3) {
         if(record->event.pressed)
             ball_velocity.x += 2;
         else
@@ -110,7 +110,7 @@ bool process_record_game(uint16_t keycode, keyrecord_t *record){
         return false;
     }
 
-    if (keycode == keymaps[0][3][5]) {
+    if (record->event.key.col == 5 && record->event.key.row == 3) {
         if(record->event.pressed)
             ball_velocity.y += 1;
         else
@@ -119,7 +119,7 @@ bool process_record_game(uint16_t keycode, keyrecord_t *record){
         return false;
     }
 
-    if (keycode == keymaps[0][2][5]) {
+    if (record->event.key.col == 5 && record->event.key.row == 2) {
         if(record->event.pressed)
             ball_velocity.y -= 1;
         else

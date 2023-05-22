@@ -1,26 +1,35 @@
 {
     "keyboard_name": "Macroball",
-    "url": "",
+    "manufacturer": "Dex Keyboards",
+    "url": "macroball.dexkeyboards.io",
     "maintainer": "tullonator",
-    "width": 7,
-    "height": 4,
+    "usb":{
+        "pid": "0xCA49",
+        "vid": "0xFEED",
+        "device_version": "0.0.1"
+    },
+    "processor": "atmega32u4",
+    "bootloader": "atmel-dfu",
     "layouts": {
         "LAYOUT": {
             "layout": [
-                { "label": "sw0", "x": 0, "y": 0.5 },
-                { "label": "sw1", "x": 0, "y": 2 },
-                { "label": "sw2", "x": 5, "y": 2 },
-                { "label": "sw3", "x": 6, "y": 2 },
-                { "label": "sw4", "x": 0, "y": 3 },
-                { "label": "sw5", "x": 5, "y": 3 },
-                { "label": "sw6", "x": 6, "y": 3 },
-                { "label": "sw7", "x": 0, "y": 4 },
-                { "label": "sw8", "x": 1, "y": 4 },
-                { "label": "sw9", "x": 2, "y": 4 },
-                { "label": "sw10", "x": 3, "y": 4 },
-                { "label": "sw11", "x": 4, "y": 4 },
-                { "label": "sw12", "x": 5, "y": 4 },
-                { "label": "sw13", "x": 6, "y": 4 }
+                { "label": "Mode", "x": 0, "y": 3.5 },
+
+                { "label": "MB3", "x": 0, "y": 2 },
+                { "label": "Back Space", "x": 5, "y": 2 },
+                { "label": "Scroll", "x": 6, "y": 2 },
+                
+                { "label": "Lower", "x": 0, "y": 1 },
+                { "label": "Up", "x": 5, "y": 1 },
+                { "label": "Enter", "x": 6, "y": 1 },
+
+                { "label": " ", "x": 0, "y": 0 },
+                { "label": "MB1", "x": 1, "y": 0 },
+                { "label": "MB2", "x": 2, "y": 0 },
+                { "label": "Play / Pause", "x": 3, "y": 0 },
+                { "label": "Left", "x": 4, "y": 0 },
+                { "label": "Down", "x": 5, "y": 0 },
+                { "label": "Right", "x": 6, "y": 0 }
             ]
         }
     }
