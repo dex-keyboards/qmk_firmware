@@ -54,3 +54,6 @@
 #define OLED_DISPLAY_128X64
 
 #define PMW3360_CS_PIN SPI_SS_PIN
+
+/* Bump up to 70MHz as per datasheet */
+#define PMW3360_CLOCK_SPEED 70000000
